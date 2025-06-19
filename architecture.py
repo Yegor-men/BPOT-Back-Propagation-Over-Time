@@ -96,12 +96,13 @@ class Network:
         num_layers: int,
         num_outputs: int,
         hidden_layer_size: int,
+        lr: float = 1e-3,
     ) -> None:
         self.layers = [
-            Layer(hidden_layer_size, hidden_layer_size) for _ in range(num_layers)
+            Layer(hidden_layer_size, hidden_layer_size, lr=lr) for _ in range(num_layers)
         ]
-        self.layers[0] = Layer(num_inputs, hidden_layer_size)
-        self.layers[-1] = Layer(hidden_layer_size, num_outputs)
+        self.layers[0] = Layer(num_inputs, hidden_layer_size, lr=lr)
+        self.layers[-1] = Layer(hidden_layer_size, num_outputs, lr=lr)
         
         for layer in self.layers:
             print(f"{layer.num_in}, {layer.num_out}")
