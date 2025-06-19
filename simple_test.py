@@ -12,7 +12,7 @@ random_output = torch.rand(num_elements).round()
 
 bpot = arch.Network(
     num_inputs=num_elements,
-    num_layers=3,
+    num_layers=5,
     num_outputs=num_elements,
     hidden_layer_size=num_elements,
     ls_decay=0,
