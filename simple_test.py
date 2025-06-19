@@ -7,7 +7,8 @@ torch.cuda.manual_seed_all(0)
 torch.set_grad_enabled(False)
 
 num_elements = 100
-random_tensor = torch.rand(num_elements).round()
+random_input = torch.rand(num_elements).round()
+random_output = torch.rand(num_elements).round()
 
 bpot = arch.Network(
     num_inputs=num_elements,
@@ -23,7 +24,7 @@ model_outputs = []
 
 num_timesteps = 100
 for i in range(num_timesteps):
-    output, ls = bpot.forward(random_tensor, random_tensor)
+    output, ls = bpot.forward(random_input, random_output)
     model_outputs.append(output)
     errors.append(ls.sum().item())
 
@@ -33,10 +34,10 @@ signals = bpot.get_learning_signals()
 for index, signal in enumerate(signals):
     print(f"Signal for layer {index}: {signal[:5]}, loss={signal.sum()}")
 
-output, ls = bpot.forward(random_tensor, random_tensor)
+output, ls = bpot.forward(random_input, random_output)
 print(f"Sample inference")
 print(f"\tReceived: {output.cpu()}")
-print(f"\tExpected: {random_tensor.cpu()}")
+print(f"\tExpected: {random_output.cpu()}")
 print(f"\tL Signal: {ls.cpu()}")
 print(f"\tLoss: {ls.sum().cpu()}")
 
