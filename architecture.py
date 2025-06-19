@@ -110,7 +110,7 @@ class Network:
         self,
         spike_input: torch.Tensor,
         expected_output: torch.Tensor,
-    ) -> torch.Tensor:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         spike_input = spike_input.to(self.layers[0].w)
         expected_output = expected_output.to(self.layers[0].w)
 
@@ -123,7 +123,7 @@ class Network:
         ls = o - expected_output  # the gradient
         self.layers[-1].update_ls(ls)
 
-        return ls
+        return o, ls
 
     def get_learning_signals(
         self,
