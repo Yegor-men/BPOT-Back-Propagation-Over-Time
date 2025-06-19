@@ -96,16 +96,33 @@ class Network:
         num_layers: int,
         num_outputs: int,
         hidden_layer_size: int,
+        ls_decay: float = 0,
         lr: float = 1e-3,
     ) -> None:
         self.layers = [
-            Layer(hidden_layer_size, hidden_layer_size, lr=lr) for _ in range(num_layers)
+            Layer(
+                num_in=hidden_layer_size,
+                num_out=hidden_layer_size,
+                ls_decay=ls_decay,
+                lr=lr,
+            )
+            for _ in range(num_layers)
         ]
-        self.layers[0] = Layer(num_inputs, hidden_layer_size, lr=lr)
-        self.layers[-1] = Layer(hidden_layer_size, num_outputs, lr=lr)
-        
-        for layer in self.layers:
-            print(f"{layer.num_in}, {layer.num_out}")
+        self.layers[0] = Layer(
+            num_in=num_inputs,
+            num_out=hidden_layer_size,
+            ls_decay=ls_decay,
+            lr=lr,
+        )
+        self.layers[-1] = Layer(
+            num_in=hidden_layer_size,
+            num_out=num_outputs,
+            ls_decay=ls_decay,
+            lr=lr,
+        )
+
+        for index, layer in enumerate(self.layers):
+            print(f"Layer {index} - in: {layer.num_in}, out: {layer.num_out}")
 
     def forward(
         self,
@@ -116,13 +133,20 @@ class Network:
         expected_output = expected_output.to(self.layers[0].w)
 
         o, ls = self.layers[0].forward(spike_input)
+        # forward pass through the first layer, but no need to pass back learning signal to the input layer
 
         for i in range(1, len(self.layers)):
             o, ls = self.layers[i].forward(o)
+            # get the output and learning signal to pass back
             self.layers[i - 1].update_ls(ls)
+            # pass back the learning signal back one layer to the previous one
 
-        ls = o - expected_output  # the gradient
+        ls = (
+            o - expected_output
+        )  # the gradient of the slope, NOT the direction which the neuron has to go
+        # need a custom learning signal for the final layer
         self.layers[-1].update_ls(ls)
+        # update the last layer (it's outside the loop)
 
         return o, ls
 

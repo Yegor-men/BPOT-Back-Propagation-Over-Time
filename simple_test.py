@@ -1,25 +1,29 @@
 import torch
 import architecture as arch
 
+torch.manual_seed(0)
+torch.cuda.manual_seed_all(0)
+
+torch.set_grad_enabled(False)
+
+num_elements = 100
+random_tensor = torch.rand(num_elements).round()
 
 bpot = arch.Network(
-    num_inputs=5,
+    num_inputs=num_elements,
     num_layers=3,
-    num_outputs=5,
-    hidden_layer_size=5,
+    num_outputs=num_elements,
+    hidden_layer_size=num_elements,
+    ls_decay=0,
     lr=1e-3,
 )
-
-# just 5, 5, 5, the idea is that [1, 0, 1, 0, 1] should return itself
-
-test_tensor = torch.tensor([1, 0, 1, 0, 1])
 
 errors = []
 model_outputs = []
 
 num_timesteps = 100
 for i in range(num_timesteps):
-    output, ls = bpot.forward(test_tensor, test_tensor)
+    output, ls = bpot.forward(random_tensor, random_tensor)
     model_outputs.append(output)
     errors.append(ls.sum().item())
 
@@ -29,8 +33,12 @@ signals = bpot.get_learning_signals()
 for index, signal in enumerate(signals):
     print(f"Signal for layer {index}: {signal[:5]}, loss={signal.sum()}")
 
-output, ls = bpot.forward(test_tensor, test_tensor)
-print(f"Sample inference - output: {output}, learning signal:  {ls}, error: {ls.sum()}")
+output, ls = bpot.forward(random_tensor, random_tensor)
+print(f"Sample inference")
+print(f"\tReceived: {output.cpu()}")
+print(f"\tExpected: {random_tensor.cpu()}")
+print(f"\tL Signal: {ls.cpu()}")
+print(f"\tLoss: {ls.sum().cpu()}")
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -50,7 +58,6 @@ plt.xlabel("Time")
 plt.ylabel("Loss")
 plt.show()
 
-
 # Plotting the model's output spike train
 
 outputs_tensor = torch.stack(model_outputs)
@@ -64,9 +71,9 @@ for neuron_index in range(out_size):
     times = [t for t in range(num_timesteps) if outputs_tensor[t, neuron_index] == 1]
     spike_times.append(times)
 
-plt.eventplot(spike_times, lineoffsets=range(out_size), linelengths=0.8, color='black')
+plt.eventplot(spike_times, lineoffsets=range(out_size), linelengths=0.8, color="black")
 
-plt.yticks(range(out_size), [f'Neuron {i}' for i in range(out_size)])
+plt.yticks(range(out_size), [f"Neuron {i}" for i in range(out_size)])
 plt.xlabel("Timestep")
 plt.ylabel("Neuron")
 plt.title(f"Spike Train Visualization Over {num_timesteps:,} Timesteps")
