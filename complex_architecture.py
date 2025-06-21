@@ -12,7 +12,12 @@ class Layer:
         ls_decay: float = 0,
         device: str = "cuda",
         lr: float = 1e-3,
+        empty_layer: bool = False,
     ) -> None:
+        self.empty = empty_layer
+        self.num_in = num_in
+        self.num_out = num_out
+        self.lr = lr
 
         self.ls = torch.zeros(num_out).to(device)
         self.ls_decay = torch.ones(num_out).to(device) * ls_decay
@@ -20,7 +25,6 @@ class Layer:
 
         self.w = torch.randn(num_in, num_out).to(device) * 0.1
         self.mem = torch.zeros(num_out).to(device)
-        self.mem_old = torch.zeros(num_out).to(device)
         self.mem_decay = torch.ones(num_out).to(device) * mem_decay
         self.threshold = torch.ones(num_out).to(device) * threshold
         # Threshold is nicer as positive, so we pass it through softplus before use
@@ -30,10 +34,11 @@ class Layer:
         self.output_trace = torch.zeros().to(device)
         # The output trace has to use mem_decay
         # The input trace should ideally use the previous layer's mem_decay
-        # Which also implies that the learning signal passed to the previous layer depends on the previous layer's mem_decay
-        # Which implies that when this layer gets a learning signal, it's based on this layer's mem_decay
-        # Hence there's a relation between output trace and the learning signal?
-        # TODO figure this out
+
+    def get_output_trace(
+        self,
+    ) -> torch.Tensor:
+        return self.output_trace
 
     def update_ls(
         self,
@@ -45,7 +50,8 @@ class Layer:
 
     def calculate_derivatives(
         self,
-    ):
+        prev_layer,
+    ) -> torch.Tensor:
         # surrogate derivative can be based on either arctan or sigmoid
         # sigmoid is easiest as it's built in, also the derivative is easy as hell
         # s(x) = e^x / (1 + e^x)
@@ -65,7 +71,7 @@ class Layer:
         # d_w, d_mem_decay, d_thresh
         # also need to calculate the derivative with respect to the input to pass as the learning signal to the upstream layer
         # d_i
-        
+
         # Hence, the output function can be calculated like this:
         # o(mem, t) = e^(mem - t) / (1 + e^(mem - t))
         # o(mem_old, mem_decay, t) = e^(mem_old * mem_decay + current - t) / (1 + e^(mem_old * mem_decay + current - t))
@@ -80,32 +86,59 @@ class Layer:
         # d_x/d_i = w
         # d_x/d_w = i
         # d_x/d_t = derivative of softplus = sigmoid(t) = S(t) * -1
-        
+
         # Therefore, we have:
         # Gradient of w: d_loss/d_w = (d_loss/d_o) * (d_o/d_x) * (d_x/d_w) = LS * S(mem_new - t)/(1 - S(mem_new - t)) * i
-        # Gradient of t: d_loss/d_w = (d_loss/d_o) * (d_o/d_x) * (d_x/d_w) = LS * S(mem_new - t)/(1 - S(mem_new - t)) * S(t) * -1
-        # Gradient of mem_decay: d_loss/d_w = (d_loss/d_o) * (d_o/d_x) * (d_x/d_w) = LS * S(mem_new - t)/(1 - S(mem_new - t)) * mem_old
-        # LS for upstream layer: d_loss/d_w = (d_loss/d_o) * (d_o/d_x) * (d_x/d_w) = LS * S(mem_new - t)/(1 - S(mem_new - t)) * w
-        
+        # Gradient of t: d_loss/d_t = (d_loss/d_o) * (d_o/d_x) * (d_x/d_t) = LS * S(mem_new - t)/(1 - S(mem_new - t)) * S(t) * -1
+        # Gradient of mem_decay: d_loss/d_mem_decay = (d_loss/d_o) * (d_o/d_mem_decay) * (d_x/d_w) = LS * S(mem_new - t)/(1 - S(mem_new - t)) * mem_decay
+        # LS for upstream layer: d_loss/d_i = (d_loss/d_o) * (d_o/d_x) * (d_x/d_i) = LS * S(mem_new - t)/(1 - S(mem_new - t)) * w
+
         # Then we just subtract the gradients from whatever we have, and that's an update to the parameters
 
-        pass
+        # +LS implies the neuron fired too much
+        # -LS implies the neuron fired too little
 
-    def update_parameters(
-        self,
-    ):
-        pass
+        do_dx = torch.nn.functional.sigmoid(self.mem) * (
+            1 - torch.nn.functional.sigmoid(self.mem)
+        )
+
+        dx_dt = -torch.nn.functional.sigmoid(self.threshold) * do_dx
+        dx_dmem_decay = -self.mem_decay * do_dx
+        # if LS is positive, the neuron fired too much, hence when - decay, subtracting should make it fire more sparsely, i.e. - = increase, hence negative
+
+        ls = (do_dx * self.ls).unsqueeze(0)  # [1, out]
+        ls = torch.broadcast_to(ls, (self.num_in, self.num_out))  # [in, out]
+
+        in_trace = prev_layer.get_output_trace()
+
+        input_tensor = in_trace.unsqueeze(-1)  # [in, 1]
+        input_tensor = torch.broadcast_to(input_tensor, (self.num_in, self.num_out))
+
+        dx_dw = ls * input_tensor  # d_ls/d_w = input
+        di = ls * self.w  # d_ls/d_in = weight
+
+        self.w -= dx_dw * self.lr
+        self.t -= dx_dt * self.lr
+        self.mem_decay -= dx_dmem_decay * self.lr
+        upstream_ls = di.mean(dim=-1)
+
+        return upstream_ls
 
     def forward(
         self,
         in_spikes: torch.Tensor,
+        upstream_layer,
     ):
-        self.calculate_derivatives()
-        self.update_parameters()
+        if self.empty:
+            return in_spikes
+
+        upstream_ls = self.calculate_derivatives(upstream_layer)
+        upstream_layer.update_ls(upstream_ls)
 
         raw_current = in_spikes @ self.w
         self.mem_old = self.mem
-        self.mem *= self.mem_decay
+        self.mem *= torch.nn.functional.sigmoid(self.mem_decay)
+        # mem_decay needs to pass through sigmoid as it must be between 0 and 1
         self.mem += raw_current
 
         softplus_thresh = torch.nn.functional.softplus(self.threshold)

@@ -14,7 +14,7 @@ bpot = arch.Network(
     num_inputs=num_elements,
     num_layers=5,
     num_outputs=num_elements,
-    hidden_layer_size=num_elements,
+    hidden_layer_size=10,
     ls_decay=0,
     lr=1e-3,
 )
@@ -46,7 +46,7 @@ import numpy as np
 
 # Plotting the average loss over time
 
-ao = 1
+ao = 10
 average_errors = []
 
 for index, error in enumerate(errors):
