@@ -11,7 +11,7 @@ class Layer:
         mem_decay: float = 0.99,
         ls_decay: float = 0,
         device: str = "cuda",
-        lr: float = 1e-3,
+        lr: float = 1e-1,
         empty_layer: bool = False,
     ) -> None:
         self.empty = empty_layer
@@ -30,8 +30,7 @@ class Layer:
         # Threshold is nicer as positive, so we pass it through softplus before use
         # Derivative of softplus is sigmoid, how convenient :)
 
-        self.input_trace = torch.zeros(num_in).to(device)
-        self.output_trace = torch.zeros().to(device)
+        self.output_trace = torch.zeros(num_out).to(device)
         # The output trace has to use mem_decay
         # The input trace should ideally use the previous layer's mem_decay
 
@@ -118,7 +117,7 @@ class Layer:
         di = ls * self.w  # d_ls/d_in = weight
 
         self.w -= dx_dw * self.lr
-        self.t -= dx_dt * self.lr
+        self.threshold -= dx_dt * self.lr
         self.mem_decay -= dx_dmem_decay * self.lr
         upstream_ls = di.mean(dim=-1)
 
@@ -129,8 +128,12 @@ class Layer:
         in_spikes: torch.Tensor,
         upstream_layer,
     ):
+        in_spikes = in_spikes.to(self.w)
+        
         if self.empty:
-            return in_spikes
+            self.output_trace *= torch.nn.functional.sigmoid(self.mem_decay)
+            self.output_trace += in_spikes
+            return in_spikes, torch.zeros_like(in_spikes)
 
         upstream_ls = self.calculate_derivatives(upstream_layer)
         upstream_layer.update_ls(upstream_ls)
@@ -145,4 +148,7 @@ class Layer:
         out_spikes = (self.mem >= softplus_thresh).float()
         self.mem -= out_spikes * softplus_thresh
 
-        return out_spikes
+        self.output_trace *= torch.nn.functional.sigmoid(self.mem_decay)
+        self.output_trace += out_spikes
+
+        return out_spikes, upstream_ls
