@@ -33,7 +33,7 @@ class SynapseLayer:
 			assert learning_signal.size() == (
 				self.num_out,), f"Neuron.update_ls(): Expected {self.num_out} but got {learning_signal.size()}"
 			learning_signal = learning_signal.to(self.weights)
-			self.ls = self.ls * self.ls_decay + learning_signal
+			self.ls += learning_signal
 
 	def backward(self) -> torch.Tensor:
 		"""
@@ -57,6 +57,8 @@ class SynapseLayer:
 		self.weights -= delta_w * self.lr  # goes down the gradient
 
 		passed_learning_signal = delta_input.mean(dim=-1)
+
+		self.ls *= self.ls_decay
 
 		return passed_learning_signal
 
@@ -115,7 +117,7 @@ class NeuronLayer:
 			assert learning_signal.size() == (
 				self.num_neurons,), f"Neuron.update_ls(): Expected {self.num_neurons} but got {learning_signal.size()}"
 			learning_signal = learning_signal.to(self.mem)
-			self.ls = self.ls * self.ls_decay + learning_signal
+			self.ls += learning_signal
 
 	def backward(self):
 		"""
@@ -125,9 +127,13 @@ class NeuronLayer:
 		# trace * tau + value = trace
 		# value = trace - trace * tau
 		# value = (1 - tau) * trace
-		average_input = (1 - self.tau) * self.input_trace
+		# average_input = (1 - self.tau) * self.input_trace
 
-		return average_input
+		passed_learning_signal = self.ls * torch.sign(self.input_trace)
+
+		self.ls *= self.ls_decay
+
+		return passed_learning_signal
 
 	def forward(self, in_current):
 		"""
