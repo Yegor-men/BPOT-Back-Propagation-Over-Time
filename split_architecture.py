@@ -60,6 +60,8 @@ class SynapseLayer:
 
 		self.ls *= self.ls_decay
 
+		if self.is_first_layer:
+			passed_learning_signal = None
 		return passed_learning_signal
 
 	def forward(self, in_spikes: torch.Tensor, ):
@@ -73,8 +75,6 @@ class SynapseLayer:
 		in_spikes = in_spikes.to(self.weights)
 
 		passed_learning_signal = self.backward()
-		if self.is_first_layer:
-			passed_learning_signal = None
 
 		self.input_trace = self.input_trace * self.tau + in_spikes
 
@@ -133,6 +133,8 @@ class NeuronLayer:
 
 		self.ls *= self.ls_decay
 
+		if self.is_first_layer:
+			passed_learning_signal = None
 		return passed_learning_signal
 
 	def forward(self, in_current):
@@ -146,8 +148,6 @@ class NeuronLayer:
 		in_current = in_current.to(self.mem)
 
 		passed_learning_signal = self.backward()
-		if self.is_first_layer:
-			passed_learning_signal = None
 
 		self.mem = self.mem * self.mem_decay + in_current
 		out_spikes = (self.mem >= self.threshold).float()
