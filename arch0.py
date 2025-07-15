@@ -53,8 +53,7 @@ class Synapse:
 
 		passed_learning_signal = dls_di.mean(dim=-1)
 
-		self.ls *= self.tau
-
+		self.ls.zero_()
 		return passed_learning_signal
 
 	def forward(self, in_spikes: torch.Tensor):
@@ -112,9 +111,8 @@ class Neuron:
 	def backward(self):
 		if self.is_first_layer:
 			return None
-
 		passed_ls = self.ls * torch.sign(self.input_trace)
-
+		self.ls.zero_()
 		return passed_ls
 
 	def forward(self, in_current: torch.Tensor):
