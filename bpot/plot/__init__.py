@@ -1,1 +1,1 @@
-from .spike_train import Spike_Train
+from ._spike_train import spike_train

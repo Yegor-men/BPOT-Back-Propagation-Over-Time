@@ -38,9 +38,9 @@ model_outputs = []
 
 for step in range(num_steps):
 	model_out = snn.forward(random_in)
-	loss, loss_derivative = bpot.loss_fn.MSE(model_out, random_out)
+	loss, loss_derivative = bpot.loss_fn.mse(model_out, random_out)
 	snn.backward(loss_derivative)
 	print(f"{step} - loss: {loss}")
 	model_outputs.append(model_out)
 
-bpot.plot.Spike_Train(model_outputs)
+bpot.plot.spike_train(model_outputs)

@@ -1,2 +1,2 @@
-from .jensen_shannon import JS
-from .mse import MSE
+from ._jensen_shannon import js
+from ._mean_squared_error import mse

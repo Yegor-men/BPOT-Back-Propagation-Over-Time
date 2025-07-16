@@ -1,2 +1,2 @@
-from .lif import LIF
-from .sequential import Sequential
+from ._lif import LIF
+from ._sequential import Sequential

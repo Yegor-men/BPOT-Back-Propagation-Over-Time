@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def Spike_Train(list_of_tensors):
+def spike_train(list_of_tensors):
 	num_timesteps = len(list_of_tensors)
 	num_neurons = list_of_tensors[0].numel()
 
