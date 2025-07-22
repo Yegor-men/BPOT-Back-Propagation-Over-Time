@@ -1,2 +1,2 @@
-from ._jensen_shannon import jensen_shannon_divergence
-from ._mean_squared_error import mean_squared_error
+from ._jensen_shannon import jsd
+from ._mean_squared_error import mse

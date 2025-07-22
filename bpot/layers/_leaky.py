@@ -1,4 +1,5 @@
 import torch
+from .. import functional
 
 
 class Leaky:
@@ -6,8 +7,8 @@ class Leaky:
 			self,
 			num_in: int,
 			num_out: int,
-			beta: float,
-			threshold: float,
+			beta: float = 1,
+			threshold: float = 1,
 			device: str = "cuda",
 			lr: float = 1e-2,
 	):
@@ -17,15 +18,8 @@ class Leaky:
 		self.lr = lr
 
 		self.weight = torch.randn(num_out, num_in).to(device)
-		self.raw_beta = (torch.ones(num_out) * torch.log(torch.tensor([beta / (1 - beta)]))).to(device)
-		self.raw_threshold = (torch.ones(num_out) * torch.log(torch.tensor([torch.e ** threshold - 1]))).to(device)
-
-		import math
-
-		approx_beta = torch.nn.functional.sigmoid(self.raw_beta[0]).item()
-		approx_thresh = torch.nn.functional.softplus(self.raw_threshold[0]).item()
-		assert math.isclose(approx_beta, beta, rel_tol=1e-3), f"Beta inverse failed"
-		assert math.isclose(approx_thresh, threshold, rel_tol=1e-3), f"Threshold inverse failed"
+		self.raw_beta = functional.sigmoid_inverse((torch.ones(num_out) * beta).to(device))
+		self.raw_threshold = functional.softplus_inverse((torch.ones(num_out) * threshold).to(device))
 
 		self.mem = torch.zeros(num_out).to(device)
 		self.in_trace = torch.zeros(num_in).to(device)
