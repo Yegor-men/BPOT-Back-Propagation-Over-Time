@@ -6,11 +6,11 @@ n_out = 10
 n_hidden = 1000
 
 model = bpot.layers.Sequential(
-	bpot.layers.Leaky(
+	bpot.layers.RLeaky(
 		num_in=n_in,
 		num_out=n_hidden,
 	),
-	bpot.layers.Leaky(
+	bpot.layers.RLeaky(
 		num_in=n_hidden,
 		num_out=n_out,
 	)
