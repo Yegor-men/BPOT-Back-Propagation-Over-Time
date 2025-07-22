@@ -28,7 +28,7 @@ def forward():
 	x, ls = l1.forward(rand_in)
 	x2, ls2 = l2.forward(x)
 	l1.backward(ls2)
-	loss, ls3 = bpot.loss_fn.mse(x2, rand_out)
+	loss, ls3 = bpot.loss_fn.mean_squared_error(x2, rand_out)
 	l2.backward(ls3)
 	print(f"Loss: {loss}, exp: {rand_out}, rec: {x2}")
 

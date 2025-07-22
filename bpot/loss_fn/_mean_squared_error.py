@@ -1,14 +1,17 @@
 import torch
 
 
-def mse(received: torch.Tensor, expected: torch.Tensor):
+def mean_squared_error(
+		obtained: torch.Tensor,
+		expected: torch.Tensor
+) -> tuple[torch.Tensor, torch.Tensor]:
 	"""
-	Applies the mean squared error loss based on the received model output vs the desired model output
-	:param received: The actual model's output.
-	:param expected: The output the model should've returned
-	:return: int(loss), torch.Tensor(learning_signal)
+	Compute the loss and learning signal of a model's outputs by using the mean squared error.
+
+	:param obtained: a tensor of size [n]; the output produced by the model
+	:param expected: a tensor of size [n]; the output the model should have produced instead
+	:return: tuple: (loss, learning signal)
 	"""
-	received, expected = received.cpu(), expected.cpu()
-	loss = (0.5 * (received - expected) ** 2).sum().item()
-	ls = 2.0 * (received - expected)
+	loss = (0.5 * (obtained - expected) ** 2).sum().item()
+	ls = 2.0 * (obtained - expected)
 	return loss, ls

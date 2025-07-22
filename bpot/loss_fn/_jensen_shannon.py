@@ -1,15 +1,18 @@
 import torch
 
 
-def js(received, expected):
+def jensen_shannon_divergence(
+		obtained: torch.Tensor,
+		expected: torch.Tensor
+) -> tuple[torch.Tensor, torch.Tensor]:
 	"""
-	Applies the Jensen Shannon loss function
-	:param received: The probability distribution the model produced
-	:param expected: The probability distribution the model should've produced
-	:return:
+	Compute the loss and learning signal of a model's outputted probability distribution by using the Jensen Shannon divergence function.
+
+	:param obtained: a tensor of size [n]; the probability distribution produced by the model
+	:param expected: a tensor of size [n]; the probability distribution the model should have produced instead
+	:return: tuple: (loss, learning signal)
 	"""
-	received, expected = received.cpu(), expected.cpu()
-	P, Q, M = expected, received, 0.5 * (expected + received)
-	loss = (0.5 * (P * torch.log(P / M)).sum() + 0.5 * (Q * torch.log(Q / M)).sum()).item()
+	P, Q, M = expected, obtained, 0.5 * (expected + obtained)
+	loss = (0.5 * (P * torch.log(P / M)).sum() + 0.5 * (Q * torch.log(Q / M)).sum())
 	ls = 0.5 * torch.log(Q / M)
 	return loss, ls
