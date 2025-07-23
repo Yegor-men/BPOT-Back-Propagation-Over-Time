@@ -7,7 +7,7 @@ class Leaky:
 			self,
 			num_in: int,
 			num_out: int,
-			beta: float = 1,
+			mem_decay: float = 1,
 			threshold: float = 1,
 			device: str = "cuda",
 			lr: float = 1e-2,
@@ -18,7 +18,7 @@ class Leaky:
 		self.lr = lr
 
 		self.weight = torch.randn(num_out, num_in).to(device)
-		self.raw_mem_decay = functional.sigmoid_inverse((torch.ones(num_out) * beta).to(device))
+		self.raw_mem_decay = functional.sigmoid_inverse((torch.ones(num_out) * mem_decay).to(device))
 		self.raw_threshold = functional.softplus_inverse((torch.ones(num_out) * threshold).to(device))
 
 		self.mem = torch.zeros(num_out).to(device)
