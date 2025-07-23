@@ -1,9 +1,12 @@
-import bpot
-import torch
+# Given a random input, can the model learn to produce a random output?
+# A simple test on if the model can even be trained in the first place
+
+import torch, bpot
 
 n_in = 1000
 n_out = 10
 n_hidden = 1000
+n_timesteps = 100
 
 model = bpot.layers.Sequential(
 	bpot.layers.RLeaky(
@@ -21,7 +24,7 @@ rand_out = torch.rand(n_out).round()
 
 model_outputs = []
 
-for i in range(100):
+for i in range(n_timesteps):
 	model_out = model.forward(rand_in)
 	loss, learning_signal = bpot.loss_fn.mse(model_out, rand_out)
 	model.backward(learning_signal)
