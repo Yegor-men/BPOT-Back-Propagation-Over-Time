@@ -21,11 +21,9 @@ class Softmax:
 
 		self.mem = torch.zeros(num_out).to(device)
 		self.in_spikes_trace = torch.zeros(num_in).to(device)
-		self.out_spikes_trace = torch.zeros(num_out).to(device)
 		self.ls = torch.zeros(num_out).to(device)
 
 		self.in_spikes_trace_decay = torch.ones(num_in).to(device) * 0.9
-		self.out_spikes_trace_decay = torch.ones(num_out).to(device) * 0.9
 
 	def calculate_derivatives(self) -> torch.Tensor:
 		average_input = functional.decompose_trace(self.in_spikes_trace, self.in_spikes_trace_decay)
@@ -44,15 +42,12 @@ class Softmax:
 		learning_signal = self.calculate_derivatives()
 		mem_decay = torch.nn.functional.sigmoid(self.raw_mem_decay)
 
-		c = torch.einsum("i, oi -> o", in_spikes, self.weight)
-		self.mem = self.mem * mem_decay + c
+		self.mem = self.mem * mem_decay + torch.einsum("i, oi -> o", in_spikes, self.weight)
 
-		distribution_probability = torch.nn.functional.softmax(self.mem, dim=-1)
-		index = torch.multinomial(distribution_probability, num_samples=1)
-		out_spikes = torch.zeros_like(distribution_probability)
+		probability_distribution = torch.nn.functional.softmax(self.mem, dim=-1)
+		index = torch.multinomial(probability_distribution, num_samples=1)
+		out_spikes = torch.zeros_like(probability_distribution)
 		out_spikes.scatter_(-1, index, 1)
-
-		self.out_spikes_trace = self.out_spikes_trace * self.out_spikes_trace_decay + out_spikes
 
 		return out_spikes, learning_signal
 

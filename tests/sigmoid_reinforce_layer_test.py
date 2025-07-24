@@ -1,16 +1,16 @@
 import torch, bpot
 
-n_in = 1000
+n_in = 4
 n_out = 10
-n_hidden = 1000
-n_timesteps = 100
+n_hidden = 5
+n_timesteps = 1000
 
 model = bpot.layers.Sequential(
 	bpot.layers.Leaky(
 		num_in=n_in,
 		num_out=n_hidden,
 	),
-	bpot.layers.Leaky(
+	bpot.layers.SigmoidReinforce(
 		num_in=n_hidden,
 		num_out=n_out,
 	)
@@ -23,9 +23,10 @@ model_outputs = []
 
 for i in range(n_timesteps):
 	model_out = model.forward(rand_in)
-	loss, learning_signal = bpot.loss_fn.mse(model_out, rand_out)
-	model.backward(learning_signal)
-	print(f"{i:,} - loss: {loss.item()}")
+	reward = bpot.loss_fn.mse_reward(model_out, rand_out)
+	print(reward)
+	model.backward(-reward)
+	print(f"{i:,} - loss: {reward.item()}")
 	model_outputs.append(model_out)
 
 print(f"exp: {rand_out}\ngot: {model_outputs[-1]}")

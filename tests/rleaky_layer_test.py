@@ -1,6 +1,3 @@
-# Given a random input, can the model learn to produce a random output?
-# A simple test on if the model can even be trained in the first place
-
 import torch, bpot
 
 n_in = 1000
