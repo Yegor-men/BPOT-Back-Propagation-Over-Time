@@ -30,9 +30,11 @@ class Leaky:
 	def calculate_derivatives(self) -> torch.Tensor:
 		average_input = functional.decompose_trace(self.in_spikes_trace, self.in_spikes_trace_decay)
 		weight_delta = torch.einsum("i, o -> oi", average_input, self.ls)
+		thresh_delta = torch.nn.functional.sigmoid(self.raw_threshold) * self.ls
 		learning_signal = torch.einsum("o, oi -> i", self.ls, self.weight)
 
 		self.weight -= weight_delta * self.lr
+		self.raw_threshold -= thresh_delta * self.lr
 		self.ls.zero_()
 
 		return learning_signal

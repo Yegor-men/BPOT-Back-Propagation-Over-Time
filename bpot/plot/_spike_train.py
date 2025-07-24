@@ -3,25 +3,29 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def spike_train(list_of_tensors):
-	num_timesteps = len(list_of_tensors)
-	num_neurons = list_of_tensors[0].numel()
+def spike_train(list_of_tensors,
+				spacing: float = 1.0,
+				linelength: float = 0.8,
+				linewidth: float = 0.5):
+	N = list_of_tensors[0].numel()
 
-	xs = []
-	ys = []
-	for t, vec in enumerate(list_of_tensors):
-		arr = vec.cpu().numpy().ravel()
-		spike_indices = np.nonzero(arr)[0]
-		xs.extend([t] * len(spike_indices))
-		ys.extend(spike_indices.tolist())
+	# for each neuron i, collect all t where vec[i] != 0
+	spike_times = [
+		[t for t, vec in enumerate(list_of_tensors) if vec[i].item() != 0]
+		for i in range(N)
+	]
 
-	plt.figure()
-	plt.scatter(xs, ys, marker='|')
+	# y‑positions for each row
+	offsets = np.arange(N) * spacing
+
+	plt.eventplot(spike_times,
+				  orientation='horizontal',
+				  lineoffsets=offsets,
+				  linelengths=linelength,
+				  linewidths=linewidth,
+				  colors='k')
+
 	plt.xlabel("Time step")
-	plt.ylabel("Element index")
+	plt.ylabel("Neuron index")
 	plt.title("Spike Train Raster")
-
-	plt.yticks(range(num_neurons))
-	# plt.xticks(range(num_timesteps))
-
 	plt.show()
